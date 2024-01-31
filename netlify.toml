@@ -1,0 +1,9 @@
+[build]
+  command = "ng build --configuration=production"
+  publish = "dist/two-screen-webpages"
+ 
+ 
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
