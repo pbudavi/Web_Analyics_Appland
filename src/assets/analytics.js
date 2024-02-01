@@ -36,21 +36,22 @@ let getDate = new Date();
 let year = getDate.getFullYear();
 let month = (getDate.getMonth() + 1).toString().padStart(2, "0");
 let day = getDate.getDate();
-let date = year + "-" + month + "-" + day.toLocaleString();
+let date = year + "" + month + "" + day.toLocaleString();
 let hh = getDate.getHours();
 let mm = getDate.getMinutes();
 let ss = getDate.getSeconds();
 let time =
   hh.toLocaleString() + ":" + mm.toLocaleString() + ":" + ss.toLocaleString();
 let obj = {};
-
-const titleElements = document.querySelectorAll('title');
-const clientName = titleElements[0].innerHTML
+ 
 //function to store in Session storage
 function storage(value) {
   sessionStorage.setItem("usernames", JSON.stringify(value));
 }
-
+ 
+const titleElements = document.querySelectorAll('title');
+const clientName = titleElements[0].innerHTML;
+ 
 //to get ip adress
 fetch("https://api.ipify.org?format=json")
   .then((response) => response.json())
@@ -92,14 +93,13 @@ function determineCurrentScreen() {
   pageName = currentURL.substring(currentURL.lastIndexOf("/") + 1);
   console.log("Current page name: " + pageName);
 }
-
+ 
 document.addEventListener("DOMContentLoaded", function () {
   determineCurrentScreen();
 });
 function changedPagename(flag) {
   if (flag) {
     pageName = newPageName;
-    console.log("Page got changed")
   }
   return pageName;
 }
@@ -110,29 +110,29 @@ let isPageChanged = false;
 (function () {
   let captureObject = {};
   let clickCounts = {};
-
+ 
   function updateClickCount(tagId, tagType) {
     if (!clickCounts[tagId]) {
       clickCounts[tagId] = 1;
     } else {
       clickCounts[tagId]++;
     }
-
+ 
     const clickCountDisplay = document.getElementById(
       `${tagType}${tagId}_click_count`
     );
     if (clickCountDisplay) {
       clickCountDisplay.textContent = clickCounts[tagId];
     }
-
+ 
     // Update captureObject with nested structure
     if (!captureObject[pageName]) {
       captureObject[pageName] = {};
     }
     obj.userEvents = [];
-
+ 
     captureObject[pageName][`${tagType}${tagId}`] = clickCounts[tagId];
-
+ 
     obj.userEvents = [{ ...captureObject }];
     console.log("User Clicked Events: "+JSON.stringify(obj));
     captureObject = {}
@@ -142,9 +142,9 @@ let isPageChanged = false;
    const params = new URLSearchParams({
     ip: obj.userInfo[0].ip,
   });
-
+ 
   const urlWithParams = `https://webanalyticals.onrender.com/getUserData/${params.get('ip')}`;
-
+ 
   fetch(urlWithParams)
     .then((response) => {
        // Check if the request was successful (status code 200)
@@ -165,8 +165,7 @@ let isPageChanged = false;
     let newObject = JSON.parse(JSON.stringify(obj));
 function delay() {
   // Find today's date
-  let today = date //new Date().toISOString().slice(0, 10); // Get today's date in YYYY-MM-DD format
-  console.log("Todat  date"+ today)
+  let today = new Date().toISOString().slice(0, 10); // Get today's date in YYYY-MM-DD format
     let oldObjects;
 let newDerivedObject;
   if (oldObject.message == "User not found") {
@@ -182,18 +181,18 @@ let newDerivedObject;
           };
       }
   }).filter(obj => obj !== undefined)[0]; // Filter out undefined values and get the first (and only) result
-  
+ 
   if (!todayObject) {
       console.log("Today's object not found in oldObject.");
       oldObjects = oldObject
     //console.log("New Dervied Object" + JSON.stringify(newDerivedObject));
    // newObject.userEvents.date == today;
-
+ 
     newObject.userEvents.forEach(newEvent => {
       // Find the index of the matching date in oldObject's userEvents array
       // let indexToUpdate = oldObjects[0].userEvents.findIndex(oldEvent => oldEvent.date === newEvent.date);
       // console.log("last index"+indexToUpdate)
-      
+     
       // if (indexToUpdate == 1) {
         // If a matching date is found, merge the events
         console.log("Events are pushed")
@@ -207,19 +206,19 @@ let newDerivedObject;
     // }
   });
      // oldObjects = [JSON.parse(JSON.stringify(newObject))];
-      
+     
   } else {
       console.log("Today's object"+JSON.stringify(todayObject));
       todayObject = [todayObject]
-  
+ 
     newDerivedObject = JSON.parse(JSON.stringify(todayObject));
-
+ 
     // Merge userInfo
     newDerivedObject.userInfo = oldObject[0].userInfo.map(oldInfo => {
       let newInfo = newObject.userInfo.find(newInfo => newInfo.ip === oldInfo.ip);
       return newInfo ? { ...oldInfo, ...newInfo } : oldInfo;
     });
-
+ 
     // Merge userEvents
     if (newObject.userEvents && Array.isArray(newObject.userEvents)) {
       newObject.userEvents.forEach((newEvent, index) => {
@@ -234,7 +233,7 @@ let newDerivedObject;
     }
     function getTotalCount(obj) {
       let totalCount = 0;
-    
+   
       obj[0].userEvents.forEach(event => {
         if(event.date == today){
           for (let screen in event) {
@@ -245,9 +244,9 @@ let newDerivedObject;
             }
           }
         }
-  
+ 
       });
-    
+   
       return totalCount;
     }
     const total = getTotalCount(newDerivedObject);
@@ -259,7 +258,7 @@ let newDerivedObject;
       // Find the index of the matching date in oldObject's userEvents array
       let indexToUpdate = oldObjects[0].userEvents.findIndex(oldEvent => oldEvent.date === newEvent.date);
       console.log("last index"+indexToUpdate)
-      
+     
       // if (indexToUpdate == 1) {
         // If a matching date is found, merge the events
         console.log("Events are merged")
@@ -270,28 +269,28 @@ let newDerivedObject;
     //     oldObject[0].userEvents.push(newEvent);
     // }
   });
-  console.log("Response to send DB"+JSON.stringify(oldObjects)); 
+  console.log("Response to send DB"+JSON.stringify(oldObjects));
   }
 }
-
  
-  
-
-
-
+ 
+ 
+ 
+ 
+ 
   // newDerivedObject[0].userEvents[0].totalCount = total
   // Check if oldObject is undefined before sending to storage
   if (oldObject !== undefined) {
     storage(newDerivedObject);
   }
-
+ 
   obj.userEvents = [];
-
+ 
   const urls = "https://webanalyticals.onrender.com/storeData";
-
+ 
   // Sample data to be sent to the API
   const requestData = oldObjects[0];
-
+ 
   //Make a POST request with the data
   fetch(urls, {
     method: 'POST',
@@ -316,19 +315,19 @@ let newDerivedObject;
       console.error('Fetch error:' + error);
     });
 }
-
+ 
 setTimeout(delay, 2000);
   }
-
+ 
   function handleButtonClick(event) {
     const target = event.target;
-
+ 
     if (target.tagName === "BUTTON") {
       const buttonId = target.textContent;
       updateClickCount(buttonId, "btn_");
       changedPagename(isPageChanged);
     }
-
+ 
     if (target.tagName === "A") {
       const linkId = target.textContent;
       updateClickCount(linkId, "link_");  
@@ -353,6 +352,6 @@ function startObserving() {
   const observerConfig = { subtree: true, childList: true };
   observer.observe(targetNode, observerConfig);
 }
-
+ 
 // Run the observer after the DOM has fully loaded
 document.addEventListener("DOMContentLoaded", startObserving);
