@@ -1,357 +1,572 @@
-// random user name generation
-const characters =
+const getDate = new Date();
+const year = getDate.getFullYear();
+const month = (getDate.getMonth() + 1).toString().padStart(2, "0");
+const day = getDate.getDate();
+const date = formatDate(getDate);
+const hh = getDate.getHours();
+const mm = getDate.getMinutes();
+const ss = getDate.getSeconds();
+const times = `${hh.toLocaleString()}:${mm.toLocaleString()}:${ss.toLocaleString()}`;
+
+const browserNameMapping = {
+  Firefox: "Mozilla Firefox",
+  "Edg/": "Microsoft Edge",
+  Chrome: "Google Chrome",
+  Safari: "Apple Safari",
+  Opera: "Opera",
+  MSIE: "Internet Explorer",
+  "Trident/": "Internet Explorer",
+};
+const characters = 
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-function generateString(length) {
-  let result = " ";
+const titleElements = document.querySelectorAll("title");
+const clientName = titleElements[0].innerHTML;
+// HTML template for cookie prompt
+const htmlTemplate = `
+<div id="cookiePopup" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 9999;">
+  <div class="wrapper" style="background: #fff; position: fixed; bottom: 20px; left: 50px; max-width: 500px; border-radius: 15px; text-align: center; border: 1px solid #493179; padding: 25px; overflow: hidden; box-shadow: 0 0 18px rgba(0, 0, 0, 0.13);">
+    <img src="../../assets/img/cookie.png" alt="" style="max-width: 90px;">
+    <div class="content" style="margin-top: 10px;">
+      <header style="font-size: 25px; font-weight: 600;">Cookies</header>
+      <h1 style="font-size: 25px; font-weight: 600;">GDPR Compliance Notice</h1>
+      <h5>What data do we collect?</h5>
+      <ul style="list-style-type: disc; text-align: left;">
+      <li>We collect personal information such as your name, email address, and location when you sign up for our service or interact with our platform.</li>
+      <li>We also gather data on your usage patterns, preferences, and interactions with our website/application/service to improve your experience and tailor our offerings to your needs.</li>
+    </ul>
+      <div class="buttons" style="display: flex; justify-content: center; align-items: center;">
+        <button class="item cancel" onclick="onBlock()" style="padding: 10px 20px; margin: 0 5px; border: none; outline: none; font-size: 16px; font-weight: 500; border-radius: 5px; cursor: pointer; background: #eee; color: #333;">Cancel</button>
+        <button class="item accept" onclick="onAccept()" style="padding: 10px 20px; margin: 0 5px; border: none; outline: none; font-size: 16px; font-weight: 500; border-radius: 5px; cursor: pointer; background: #493179; color: #fff;">Accept</button>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+let userDetail = {};
+let pageName = "";
+let newPageName = "";
+let isPageChanged = false;
+let id;
+let time;
+let serverUpdateTime;
+let isResponseToDB = false;
+let ipAddress;
+let ls = {};
+let clickCounts = {};
+
+
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0'); 
+  const day = String(date.getDate()).padStart(2, '0');
+ 
+  return `${year}-${month}-${day}`;
+}
+
+const generateString = (length) => {
+  let result = "";
   const charactersLength = characters.length;
+
   for (let i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
+
   return result;
-}
-//To find the browser
-let browserName = "";
-let userAgent = navigator.userAgent;
-console.log(userAgent);
-if (userAgent.indexOf("Firefox") > -1) {
-  browserName = "Mozilla Firefox";
-} else if (userAgent.search("Edg/") > -1) {
-  browserName = "Microsoft Edge";
-} else if (userAgent.indexOf("Chrome") > -1) {
-  browserName = "Google Chrome";
-} else if (userAgent.indexOf("Safari") > -1) {
-  browserName = "Apple Safari";
-} else if (userAgent.indexOf("Opera") > -1) {
-  browserName = "Opera";
-} else if (
-  userAgent.indexOf("MSIE") > -1 ||
-  userAgent.indexOf("Trident/") > -1
-) {
-  browserName = "Internet Explorer";
-} else {
-  browserName = "Unknown Browser";
-}
-//logged time and date
-let getDate = new Date();
-let year = getDate.getFullYear();
-let month = (getDate.getMonth() + 1).toString().padStart(2, "0");
-let day = getDate.getDate();
-let date = year + "" + month + "" + day.toLocaleString();
-let hh = getDate.getHours();
-let mm = getDate.getMinutes();
-let ss = getDate.getSeconds();
-let time =
-  hh.toLocaleString() + ":" + mm.toLocaleString() + ":" + ss.toLocaleString();
-let obj = {};
- 
-//function to store in Session storage
-function storage(value) {
+};
+
+const userAgent = navigator.userAgent;
+const browserName =
+  Object.keys(browserNameMapping).find((key) => userAgent.includes(key)) ||
+  "Unknown Browser";
+
+function storeUserName(value) {
   sessionStorage.setItem("usernames", JSON.stringify(value));
 }
- 
-const titleElements = document.querySelectorAll('title');
-const clientName = titleElements[0].innerHTML;
- 
+
+if (!getCookie('deviceType')) {
+  let deviceTypeInfo = detectDeviceType();
+  setCookie('deviceType', deviceTypeInfo, 24);
+}
+
 //to get ip adress
 fetch("https://api.ipify.org?format=json")
   .then((response) => response.json())
   .then((data) => {
-    const ipAddress = data.ip;
-    console.log("User IP address:", ipAddress);
-    var storedName = sessionStorage.getItem("usernames");
-    obj = {
+    ipAddress = data.ip;   
+    const deviceType = getCookie("deviceType");
+    console.log("Device Type:", deviceType);
+
+    userDetail = {
       userInfo: [
         {
           ip: ipAddress,
-          userName: generateString(5), //"zoL1j"
+          userName: generateString(5),
           browserName: browserName,
           dates: date,
-          time: time,
-          clientName : clientName
+          time: times,
+          deviceType : deviceType,
+          clientName: clientName,
         },
       ],
-      userEvents: [],
     };
+
     try {
-      var userNameKey = JSON.parse(sessionStorage.usernames);
-      var ipCheck = userNameKey.userInfo[0].ip;
+      const userNameKey = JSON.parse(sessionStorage.usernames);
+      const ipCheck = userNameKey.userInfo[0].ip;
     } catch {
-      storage(obj);
+      storeUserName(userDetail);
     }
-    var userNameKey = JSON.parse(sessionStorage.usernames);
-    var ipCheck = userNameKey.userInfo[0].ip;
+
+    const userNameKey = JSON.parse(sessionStorage.usernames);
+    const ipCheck = userNameKey.userInfo[0].ip;
+
     if (ipAddress != ipCheck) {
-      storage(obj);
+      storeUserName(userDetail);
     }
+  
+
   })
   .catch((error) => {
     console.error("Error:", error);
   });
-let pageName = "";
-function determineCurrentScreen() {
-  let currentURL = window.location.href;
-  pageName = currentURL.substring(currentURL.lastIndexOf("/") + 1);
-  console.log("Current page name: " + pageName);
+  
+
+// Event handler functions
+let isCookieCancel = false;
+function onAccept() {
+  this.getUserRegion();
+  closeCookiePopup();
 }
+
+function onBlock() {
+  closeCookiePopup();
+  isCookieCancel = false;
+  if(isCookieCancel){
+    sendUserInfoToConfig(userDetail.userInfo[0])
+  }
+}
+
+// Function to close the cookie popup
+function closeCookiePopup() {
+  const cookiePopup = document.getElementById("cookiePopup");
+
+  if (cookiePopup) {
+    cookiePopup.remove();
+  }
+
+}
+
+// Function to set cookie with expiry time
+function setCookie(name, value, hours) {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + hours * 60 * 60 * 1000); // Convert hours to milliseconds
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+}
+
+function getUserRegion() {
+  
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`;
+
+        let userType;
+
+        fetch(url)
+          .then((res) => res.json())
+          .then((data) => {
+            const country = data.address.country;
+            const city = data.address.county;
+            const storedUserData = sessionStorage.getItem("usernames");        
+
+            for (let i = 0; i < sessionStorage.length; i++) {
+              const key = sessionStorage.key(i);
+            }
+
+            if (storedUserData) {
+              userType = "Authenticated";
+            } else {
+              userType = "Anonymous";
+            }
+
+            const deviceType = getCookie("deviceType");
+            console.log("Device Type:", deviceType);            
+            const userInfo = {
+              ip: ipAddress,
+              userName: generateString(5),
+              userType: userType,
+              browserName: browserName,
+              dates: date,
+              time: times,
+              clientName: clientName,
+              deviceType : deviceType,
  
+            };
+            const locationInfo = {
+              clientName: clientName,
+              latitude: latitude.toString(),
+              longitude: longitude.toString(),
+              cityName : city.toString(),
+              country: country.toString(),
+
+            }
+            const deviceTypeInfo = {
+              clientName: clientName,
+              DeviceName : deviceType,
+            }
+
+           sendUserInfoToConfig(userInfo,locationInfo,deviceTypeInfo);
+    
+          });
+
+        setCookie("cookieAccepted", "true", 24);
+      },
+      (error) => {
+        console.error("Error getting user location:", error);
+      }
+    );
+  } else {
+    console.log("Geolocation is not supported by this browser.");
+  }
+}
+
+async function sendUserInfoToConfig(userInfo,locationInfo,deviceTypeInfo) {
+
+  try {
+    const response = await fetch("https://webanalyticals.onrender.com/config", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userInfo: userInfo,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Error sending userInfo to config API: ${response.status}`
+      );
+    }
+
+    const configData = await response.json();
+    console.log("Config Data:", configData);
+    id = configData._id;
+    time = configData.serverUpdateTime;
+    setCookie("serverUpdateTime", time, 30); // Set a cookie named "userId" with the extracted id that expires in 30 days
+    setCookie("userId", id, 30); // Set a cookie named "userId" with the extracted id that expires in 30 days
+    locationInfo ._id = id;
+    deviceTypeInfo._id = id;
+    sendUserLocation(locationInfo);
+    sendDeviceInfo(deviceTypeInfo);
+  }
+  catch (error) {
+    console.error("Error sending userInfo to config API:", error);
+  }
+}
+
+async function sendUserLocation(loctioninfo) {
+  try {
+    const response = await fetch("https://webanalyticals.onrender.com/saveMapData", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(loctioninfo),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Error sending loctioninfo to saveMapData API: ${response.status}`
+      );
+    }
+    const locationData = await response.json();
+    console.log("Location Data:", locationData);
+
+  }
+  catch (error) {
+    console.error("Error sending Location Information to Location API:", error);
+  }
+}
+
+async function sendDeviceInfo(deviceTypeInfo) {
+  try {
+    const response = await fetch("https://webanalyticals.onrender.com/saveDeviceData", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(deviceTypeInfo),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Error sending loctioninfo to saveMapData API: ${response.status}`
+      );
+    }
+    const deviceData = await response.json();
+    console.log("Device Data:", deviceData);
+
+  }
+  catch (error) {
+    console.error("Error sending Device Information to Device API:", error);
+  }
+}
+
+function detectDeviceType() {
+  const userAgent = navigator.userAgent.toLowerCase();
+ 
+  if (/ipad|tablet|playbook|silk/i.test(userAgent)) {
+      return 'tablet';
+  } else if (/mobile|iphone|ipod|blackberry|opera mini|iemobile|windows phone|trident|opera mobi|mobilesafari|htc|nokia|symbian|samsung|lg|mot/i.test(userAgent)) {
+      return 'mobile';
+  } else {
+      return 'pc';
+  }
+}
+const deviceType = getCookie("deviceType");
+console.log("Device Type:", deviceType);
+
+function getCookie(cookieName) {
+  const cookies = document.cookie.split(";");
+
+  for (let i = 0; i < cookies.length; i++) {
+    const cookie = cookies[i].trim();
+
+    if (cookie.indexOf(cookieName + "=") === 0) {
+      return cookie.substring(cookieName.length + 1);
+    }
+  }
+
+  return null;
+}
+
+// Function to inject HTML into the DOM
+function injectHTML(html) {
+  const sessionDetails = getCookie("cookieAccepted");
+  
+  if (!sessionDetails) {
+    const container = document.createElement("div");
+    container.innerHTML = htmlTemplate.trim();
+    document.body.appendChild(container.firstChild);
+  }
+
+}
+
+// Inject HTML template into the DOM after DOMContentLoaded
 document.addEventListener("DOMContentLoaded", function () {
+  injectHTML(htmlTemplate);
+});
+
+function storeUserEvent(value) {
+  sessionStorage.setItem("userevents", JSON.stringify(value));
+  isResponseToDB = true;
+}
+
+function determineCurrentScreen() {
+  const currentURL = window.location.href;
+  pageName = currentURL.substring(currentURL.lastIndexOf("/") + 1);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
   determineCurrentScreen();
 });
-function changedPagename(flag) {
-  if (flag) {
+
+function changedPageName(isPageChangedtoOtherScreen) {
+  
+  if (isPageChangedtoOtherScreen) {
     pageName = newPageName;
   }
   return pageName;
 }
-let ls = {};
-let clickCounts = {};
-let newPageName = "";
-let isPageChanged = false;
+
 (function () {
   let captureObject = {};
   let clickCounts = {};
- 
+  let responseToDB;
+  let requesteDataToDB;
+
   function updateClickCount(tagId, tagType) {
+
     if (!clickCounts[tagId]) {
       clickCounts[tagId] = 1;
     } else {
       clickCounts[tagId]++;
     }
- 
+
     const clickCountDisplay = document.getElementById(
       `${tagType}${tagId}_click_count`
     );
+
     if (clickCountDisplay) {
       clickCountDisplay.textContent = clickCounts[tagId];
     }
- 
-    // Update captureObject with nested structure
+
     if (!captureObject[pageName]) {
       captureObject[pageName] = {};
     }
-    obj.userEvents = [];
- 
+
+    userDetail.userEvents = [];
     captureObject[pageName][`${tagType}${tagId}`] = clickCounts[tagId];
- 
-    obj.userEvents = [{ ...captureObject }];
-    console.log("User Clicked Events: "+JSON.stringify(obj));
-    captureObject = {}
-    // storage(obj);
-   //let oldObject = {"userInfo":[{"ip":"202.83.17.212","userName":" WhslD","browserName":"Google Chrome","dates":"20240112","time":"12:47:3"}],"userEvents":[{"screen1":{"btn_ login":0,"btn_ signup":0,"btn_ home":0,"link_Go to Screen 2":0},"screen2":{"btn_ create ":0,"btn_ delete":0, "btn_ deletess":0,"btn_ updatedd":0}}]};
-   let oldObject = {}
-   const params = new URLSearchParams({
-    ip: obj.userInfo[0].ip,
-  });
- 
-  const urlWithParams = `https://webanalyticals.onrender.com/getUserData/${params.get('ip')}`;
- 
-  fetch(urlWithParams)
-    .then((response) => {
-       // Check if the request was successful (status code 200)
-       if (!response.ok) {
-         //throw new Error(`HTTP error! Status: ${response.status}`);
-       }
-       return response.json(); // Assuming the response is in JSON format
-     })
-     .then(data => {
-       // Now, 'data' contains the information from the API
-       // Do something with the data here
-       oldObject = data;
-       console.log("Response from DB"+ JSON.stringify(oldObject));
-     })
-     .catch(error => {
-       console.error('Fetch error:'+  error);
-     });
-    let newObject = JSON.parse(JSON.stringify(obj));
-function delay() {
-  // Find today's date
-  let today = new Date().toISOString().slice(0, 10); // Get today's date in YYYY-MM-DD format
-    let oldObjects;
-let newDerivedObject;
-  if (oldObject.message == "User not found") {
-    oldObjects =[JSON.parse(JSON.stringify(newObject))];
-    console.log("Old object was undefined. Assigning newObject to newDerivedObject.");
-  } else {
-    let todayObject = oldObject.map(obj => {
-      let userEvent = obj.userEvents.find(event => event.date === today);
-      if (userEvent) {
-          return {
-              ...obj,
-              userEvents: [userEvent] // Only include the user event for today's date
-          };
-      }
-  }).filter(obj => obj !== undefined)[0]; // Filter out undefined values and get the first (and only) result
- 
-  if (!todayObject) {
-      console.log("Today's object not found in oldObject.");
-      oldObjects = oldObject
-    //console.log("New Dervied Object" + JSON.stringify(newDerivedObject));
-   // newObject.userEvents.date == today;
- 
-    newObject.userEvents.forEach(newEvent => {
-      // Find the index of the matching date in oldObject's userEvents array
-      // let indexToUpdate = oldObjects[0].userEvents.findIndex(oldEvent => oldEvent.date === newEvent.date);
-      // console.log("last index"+indexToUpdate)
-     
-      // if (indexToUpdate == 1) {
-        // If a matching date is found, merge the events
-        console.log("Events are pushed")
-        console.log(JSON.stringify(newEvent))
-        newEvent.date = today;
-        oldObjects[0].userEvents.push(newEvent);
-    // } else {
-    //     // If no matching date is found, add the new event to the oldObject's userEvents array
-    //     console.log("If no matching date is found, add the new event to the oldObject's userEvents array")
-    //     oldObject[0].userEvents.push(newEvent);
-    // }
-  });
-     // oldObjects = [JSON.parse(JSON.stringify(newObject))];
-     
-  } else {
-      console.log("Today's object"+JSON.stringify(todayObject));
-      todayObject = [todayObject]
- 
-    newDerivedObject = JSON.parse(JSON.stringify(todayObject));
- 
-    // Merge userInfo
-    newDerivedObject.userInfo = oldObject[0].userInfo.map(oldInfo => {
-      let newInfo = newObject.userInfo.find(newInfo => newInfo.ip === oldInfo.ip);
-      return newInfo ? { ...oldInfo, ...newInfo } : oldInfo;
-    });
- 
-    // Merge userEvents
-    if (newObject.userEvents && Array.isArray(newObject.userEvents)) {
-      newObject.userEvents.forEach((newEvent, index) => {
-        newDerivedObject[0].userEvents[index] = newDerivedObject[0].userEvents[index] || {};
-        for (let screen in newEvent) {
-          newDerivedObject[0].userEvents[index][screen] = newDerivedObject[0].userEvents[index][screen] || {};
-          for (let button in newEvent[screen]) {
-              newDerivedObject[0].userEvents[index][screen][button] = (newDerivedObject[0].userEvents[index][screen][button] || 0) + 1//(newEvent[screen][button] || 0);
-          }
-        }
-      });
-    }
-    function getTotalCount(obj) {
-      let totalCount = 0;
-   
-      obj[0].userEvents.forEach(event => {
-        if(event.date == today){
-          for (let screen in event) {
-            if (screen !== 'date') {
-              for (let button in event[screen]) {
-                totalCount += event[screen][button];
+    userDetail.userEvents = [{ ...captureObject }];
+    console.log("User Clicked Events: " + JSON.stringify(userDetail));
+    captureObject = {};
+    clickCounts = {};
+
+    let oldObject;
+    let userEventDetail = sessionStorage.getItem("userevents");
+    let newObject = JSON.parse(JSON.stringify(userDetail));
+    let currentUserEvents;
+    let newDerivedObject;
+
+    oldObject = [userEventDetail];
+
+    if (oldObject == "" || oldObject == undefined) {
+      currentUserEvents = [JSON.parse(JSON.stringify(newObject))];
+      newObject.userEvents[0].date = date;
+      console.log(`New derived object: ${JSON.stringify(newObject)}`);
+      storeUserEvent([newObject]);
+    } else {
+      let todayObject = oldObject;
+
+      if (!todayObject) {
+        currentUserEvents = oldObject;
+        
+        newObject.userEvents.forEach((newEvent) => {
+          console.log(JSON.stringify(newEvent));
+          currentUserEvents[0].userEvents.push(newEvent);
+        });
+
+      } else {
+        newDerivedObject = JSON.parse(todayObject);
+
+        if (newObject.userEvents && Array.isArray(newObject.userEvents)) {
+          newObject.userEvents.forEach((newEvent, index) => {
+            newDerivedObject[0].userEvents[index] =
+              newDerivedObject[0].userEvents[index] || {};
+
+            for (let screen in newEvent) {
+              newDerivedObject[0].userEvents[index][screen] =
+                newDerivedObject[0].userEvents[index][screen] || {};
+
+              for (let button in newEvent[screen]) {
+                newDerivedObject[0].userEvents[index][screen][button] =
+                  (newDerivedObject[0].userEvents[index][screen][button] || 0) +
+                  (newEvent[screen][button] || 0);
               }
             }
-          }
+          });
         }
- 
-      });
-   
-      return totalCount;
-    }
-    const total = getTotalCount(newDerivedObject);
-    console.log("Total Count from all screens:", total);
-    newDerivedObject[0].userEvents[0].totalCount = total
-     oldObjects = oldObject
-    console.log("New Dervied Object" + JSON.stringify(newDerivedObject));
-    newDerivedObject[0].userEvents.forEach(newEvent => {
-      // Find the index of the matching date in oldObject's userEvents array
-      let indexToUpdate = oldObjects[0].userEvents.findIndex(oldEvent => oldEvent.date === newEvent.date);
-      console.log("last index"+indexToUpdate)
-     
-      // if (indexToUpdate == 1) {
-        // If a matching date is found, merge the events
-        console.log("Events are merged")
-        oldObjects[0].userEvents[indexToUpdate] = newEvent;
-    // } else {
-    //     // If no matching date is found, add the new event to the oldObject's userEvents array
-    //     console.log("If no matching date is found, add the new event to the oldObject's userEvents array")
-    //     oldObject[0].userEvents.push(newEvent);
-    // }
-  });
-  console.log("Response to send DB"+JSON.stringify(oldObjects));
-  }
-}
- 
- 
- 
- 
- 
- 
-  // newDerivedObject[0].userEvents[0].totalCount = total
-  // Check if oldObject is undefined before sending to storage
-  if (oldObject !== undefined) {
-    storage(newDerivedObject);
-  }
- 
-  obj.userEvents = [];
- 
-  const urls = "https://webanalyticals.onrender.com/storeData";
- 
-  // Sample data to be sent to the API
-  const requestData = oldObjects[0];
- 
-  //Make a POST request with the data
-  fetch(urls, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Add any additional headers as needed
-    },
-    body: JSON.stringify(requestData),
-  })
-    .then(response => {
-      // Check if the request was successful (status code 200)
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+
+        newDerivedObject[0].userEvents[0].date = date;
+        console.log("New Dervied Object" + JSON.stringify(newDerivedObject));
+        const requestData = newDerivedObject[0];
+        storeUserEvent([requestData]);
       }
-      return response.json(); // Assuming the response is in JSON format
-    })
-    .then(data => {
-      // Handle the response data here
-      console.log(data);
-    })
-    .catch(error => {
-      console.error('Fetch error:' + error);
-    });
-}
- 
-setTimeout(delay, 2000);
+    }
+
+    responseToDB = sessionStorage.getItem("userevents");
+
+    if (responseToDB) {
+      const parsedData = JSON.parse(responseToDB);
+      // Access userEvents key
+      const userEvents = parsedData[0].userEvents;
+      requesteDataToDB = JSON.stringify(userEvents);
+    }
   }
- 
+  console.log("responseToDB", responseToDB);
+  
+  async function sendUserEventData() {
+    if (isResponseToDB) {
+      const userId = getCookie("userId");
+      
+      const response = await fetch(
+        `https://webanalyticals.onrender.com/updateUserEvents/${userId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: requesteDataToDB,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error fetching config data: ${response.status}`);
+      }
+      
+    const configData = await response.json();
+    console.log("Config Data:", configData);
+      sessionStorage.clear();
+
+      if (requesteDataToDB.length) {
+        isResponseToDB = false;
+        requesteDataToDB = [];
+      }
+    }
+  }
+  sendUserEventData(); // Call sendData immediately if there's data
+  function sendUserEventDataCall() {
+    serverUpdateTime = getCookie("serverUpdateTime");
+
+    if (serverUpdateTime != null) {
+      console.log("Server update time"+ serverUpdateTime)
+      setInterval(sendUserEventData, serverUpdateTime);
+      clearInterval(setTintervalTimer)
+    }
+  }
+
+  const setTintervalTimer = setInterval(sendUserEventDataCall, 1000);
+
   function handleButtonClick(event) {
     const target = event.target;
- 
-    if (target.tagName === "BUTTON") {
-      const buttonId = target.textContent;
-      updateClickCount(buttonId, "btn_");
-      changedPagename(isPageChanged);
+    const isButton = target.tagName === "BUTTON" || target.closest("button");
+    const linkElement = target.tagName === "A" ? target : target.closest("a");
+
+    if (isButton) {
+      const buttonElement =
+        target.tagName === "BUTTON" ? target : target.closest("button");
+      const parentButtonContent = getParentContent(buttonElement, "button");
+      updateClickCount(parentButtonContent, "btn_");
+      changedPageName(isPageChanged);
+    } else if (linkElement) {
+      const parentLinkContent = getParentContent(linkElement, "link");
+      updateClickCount(parentLinkContent, "link_");
+      changedPageName(isPageChanged);
     }
- 
-    if (target.tagName === "A") {
-      const linkId = target.textContent;
-      updateClickCount(linkId, "link_");  
-      changedPagename(isPageChanged);
-    }
+
   }
+
+  function getParentContent(element, type) {
+    let parentContent = element.textContent.trim();
+    let parentElement = element.parentElement.closest(type);
+
+    while (parentElement) {
+      parentContent = parentElement.textContent.trim();
+      parentElement = parentElement.parentElement.closest(type);
+    }
+    return parentContent;
+  }
+
   document.addEventListener("click", handleButtonClick);
 })();
+
 function startObserving() {
   const observer = new MutationObserver(() => {
     const currentUrl = window.location.href;
-    console.log("Current URL:", currentUrl);
     newPageName = currentUrl.substring(currentUrl.lastIndexOf("/") + 1);
-    console.log("Last index" + newPageName);
+
     if (newPageName !== pageName) {
       isPageChanged = true;
-      console.log("Switched to screen: " + newPageName);
     }
   });
-  // Use document.body as the target node
+
   const targetNode = document.body;
   const observerConfig = { subtree: true, childList: true };
   observer.observe(targetNode, observerConfig);
 }
- 
-// Run the observer after the DOM has fully loaded
+
 document.addEventListener("DOMContentLoaded", startObserving);
