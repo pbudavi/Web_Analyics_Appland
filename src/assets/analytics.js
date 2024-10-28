@@ -8,6 +8,8 @@ const mm = getDate.getMinutes();
 const ss = getDate.getSeconds();
 const times = `${hh.toLocaleString()}:${mm.toLocaleString()}:${ss.toLocaleString()}`;
 
+const socket = io('http://localhost:5000/')
+
 const browserNameMapping = {
   Firefox: "Mozilla Firefox",
   "Edg/": "Microsoft Edge",
@@ -55,6 +57,40 @@ let ipAddress;
 let ls = {};
 let clickCounts = {};
 
+socket.on('connect', () => {
+  console.log('Connected to the server');
+});
+ 
+socket.on('welcome', (data) => {
+  console.log('Received welcome message:', data);
+});
+ 
+socket.on('receive_message', (data) => {
+  displayProductNotification(data)
+})
+
+function displayProductNotification(data) {
+  console.log('data'+data)
+
+  const existingNotification = document.getElementById('notification');
+
+  if(existingNotification) {
+    existingNotification.remove()
+  }
+
+ const notificationDiv = document.createElement('div')
+ notificationDiv.id = 'notification';
+ notificationDiv.innerHTML = data;
+ document.body.appendChild(notificationDiv);
+}
+ 
+function closeNotification(){
+  const notificationDiv = document.getElementById('notification');
+ 
+  if (notificationDiv) {
+    notificationDiv.remove();
+  }
+}
 
 function formatDate(date) {
   const year = date.getFullYear();
