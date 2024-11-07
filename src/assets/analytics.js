@@ -8,7 +8,7 @@ const mm = getDate.getMinutes();
 const ss = getDate.getSeconds();
 const times = `${hh.toLocaleString()}:${mm.toLocaleString()}:${ss.toLocaleString()}`;
 
-const socket = io("http://localhost:5000/");
+const socket = io("https://web-analytics-v1.onrender.com");
 
 const browserNameMapping = {
   Firefox: "Mozilla Firefox",
